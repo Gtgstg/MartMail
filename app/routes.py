@@ -1,6 +1,9 @@
+from flask_mail import Message
+
 from flask import request,jsonify
-from app import app, db
+from app import app, db, mail
 from app.models import User,Temp
+
 @app.route('/hello-world')
 def hello_world():
     return 'Hello-world'
@@ -78,3 +81,17 @@ def template():
         Temp.query.filter_by(name=name,html=html).delete()
         db.session.commit()
         return 'success deletion with name {}'.format(name)
+
+@app.route("/email",methods=['POST'])
+def email():
+    name=request.args.get('name')
+    print(name,'is this')
+    recip=[]
+    user =User.query.all()
+    for i in user:
+        recip.append(i.email)
+    temp=Temp.query.filter_by(name=name).first()
+    # print(temp.html)
+    msg=Message('Hello',sender='yourId@gmail.com',recipients=recip,html=temp.html)
+    mail.send(msg)
+    return "Sent"
