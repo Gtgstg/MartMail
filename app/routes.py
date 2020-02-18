@@ -1,8 +1,7 @@
 from flask_mail import Message
-
 from flask import request,jsonify
 from app import app, db, mail
-from app.models import User,Temp
+from app.models import User,Temp,Dynmic_Temp
 
 @app.route('/hello-world')
 def hello_world():
@@ -62,7 +61,7 @@ def template():
     if request.method=='GET':
         user = Temp.query.filter_by(name=name)
         user = user.first()
-        return '<html>{}</html>'.format(user.html)
+        return user.html
         # cols = ['id', 'name', 'html']
         # data = Temp.query.all()
         # result = [{col: getattr(d, col) for col in cols} for d in data]
@@ -71,27 +70,64 @@ def template():
         user=Temp.query.filter_by(name=name).first()
         user.html=html
         db.session.commit()
-        return 'updated email id is '+ html
+        return 'updated template is '+ html
     if request.method=='POST':
         user=Temp(name=name,html=html)
         db.session.add(user)
         db.session.commit()
-        return 'Created new user with email {}'.format(name)
+        return 'Created new template with  {}'.format(name)
     if request.method=='DELETE':
         Temp.query.filter_by(name=name,html=html).delete()
+        db.session.commit()
+        return 'success deletion with name {}'.format(name)
+
+@app.route('/dynamic-template',methods=['POST','GET','DELETE','PUT'])
+def dynamic_template():
+    name=request.args.get('name')
+    html=request.args.get('html')
+    if request.method=='GET':
+        user = Dynmic_Temp.query.filter_by(name=name)
+        user = user.first()
+        return user.html
+        # cols = ['id', 'name', 'html']
+        # data = Temp.query.all()
+        # result = [{col: getattr(d, col) for col in cols} for d in data]
+        # return jsonify(result=result)
+    if request.method=='PUT':
+        user=Dynmic_Temp.query.filter_by(name=name).first()
+        user.html=html
+        db.session.commit()
+        return 'updated template is '+ html
+    if request.method=='POST':
+        user=Dynmic_Temp(name=name,html=html)
+        db.session.add(user)
+        db.session.commit()
+        return 'Created new template with {}'.format(name)
+    if request.method=='DELETE':
+        Dynmic_Temp.query.filter_by(name=name,html=html).delete()
         db.session.commit()
         return 'success deletion with name {}'.format(name)
 
 @app.route("/email",methods=['POST'])
 def email():
     name=request.args.get('name')
-    print(name,'is this')
     recip=[]
     user =User.query.all()
     for i in user:
         recip.append(i.email)
     temp=Temp.query.filter_by(name=name).first()
-    # print(temp.html)
     msg=Message('Hello',sender='yourId@gmail.com',recipients=recip,html=temp.html)
     mail.send(msg)
+    return "Sent"
+
+@app.route("/email-dynamic",methods=['POST'])
+def email_dynamic():
+    name=request.args.get('name')
+    couponCode=request.args.get('couponCode')
+    user =User.query.all()
+    for i in user:
+        temp=Dynmic_Temp.query.filter_by(name=name).first()
+        print(temp)
+        msg=Message('Hello',sender='yourId@gmail.com',recipients=list(i.email),html=temp.html.format(i.username,i.price,couponCode))
+        mail.send(msg)
     return "Sent"
