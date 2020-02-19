@@ -35,11 +35,10 @@ class Reviews(db.Model):
 
 class UserProductList(db.Model):
     Id=db.Column(db.Integer,primary_key=True)
-    userId=db.Column(db.Integer,db.ForeignKey('customers.id'))
-    # productId=db.Column(db.Integer,db.ForeignKey('product.id'))
+    userId=db.Column(db.Integer)
     productId = db.Column(db.Integer)
     quantity = db.Column(db.Integer)
-    orderId=db.Column(db.Integer,db.ForeignKey('order.id'))
+    orderId=db.Column(db.Integer)
     __tablename__='userprod'
     def __repr__(self):
         return '<UserProductList on {}>'.format(self.userid)
@@ -48,7 +47,6 @@ class Order(db.Model):
     id=db.Column(db.Integer,primary_key=True)
     purchaseDate=db.Column(db.DateTime)
     totalPrice=db.Column(db.Integer)
-    # customers = db.relationship('Customers', secondary=UserProductList, backref=db.backref('customers', lazy='dynamic'))
     __tablename__='order'
     def __repr__(self):
         return '<Order on {}>'.format(self.purchaseDate)
@@ -77,7 +75,6 @@ class Customers(db.Model):
     zipcode = db.Column(db.Integer)
     phoneNumber = db.Column(db.String(20))
     registrationDate = db.Column(db.DateTime)
-    ordering=db.relationship('Order',secondary=UserProductList.__tablename__,backref=db.backref('orders',lazy='dynamic'))
     __tablename__='customers'
     def __repr__(self):
         return '<customers on {}>'.format(self.first_name)

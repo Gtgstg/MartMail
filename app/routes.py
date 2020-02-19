@@ -1,13 +1,20 @@
 from datetime import date, datetime
 from io import TextIOWrapper
-import requests
 from flask_mail import Message
 from flask import request,jsonify
 from app import app, db, mail
 from app.models import User,Temp,Dynmic_Temp,Order,Reviews,UserProductList,Product,Customers
 import csv
+import requests
 
-def customer(name):
+def csvRead():
+    filecsv = request.files['fisier']
+    filecsv = TextIOWrapper(filecsv, encoding='UTF-8')
+    data = csv.reader(filecsv, delimiter=",")
+    Cdata = list(data)
+    return Cdata
+
+def getting_user(name):
     customer = User.query.filter_by(username=name).first()
     print(customer)
     return  (customer.email)
@@ -15,6 +22,7 @@ def customer(name):
 @app.route('/hello-world')
 def hello_world():
     return 'Hello-world'
+
 @app.route('/user/<username>/<email>',methods=['POST','GET','DELETE','PUT'])
 def user(username,email):
     if request.method=='GET':
@@ -64,7 +72,7 @@ def users():
         return 'success deletion with username {}'.format(username)
 
 
-def delete_customer(name):
+def deleting_user(name):
     User.query.filter_by(username=name).delete()
     db.session.commit()
     return 'success deletion with customername {}'.format(name)
@@ -123,7 +131,7 @@ def dynamic_template():
         db.session.commit()
         return 'success deletion with name {}'.format(name)
 
-def put_customer(new_id,name):
+def putting_user(new_id,name):
     admin = User.query.filter_by(username=name).first()
     # admin.emailid = new_id
     db.session.commit()
@@ -165,10 +173,7 @@ def email_dynamic():
 
 @app.route("/order",methods=['POST'])
 def order():
-    filecsv = request.files['fisier']
-    filecsv = TextIOWrapper(filecsv, encoding='UTF-8')
-    data = csv.reader(filecsv, delimiter=",")
-    Cdata = list(data)
+    Cdata=csvRead()
     for i in range(1,len(Cdata)):
         a,b,c=Cdata[i][1].split('/')
         user = Order(id=int(Cdata[i][0]), purchaseDate=date(int(c),int(b),int(a)),totalPrice=int(Cdata[i][2]))
@@ -178,10 +183,7 @@ def order():
 
 @app.route("/reviews",methods=['POST'])
 def reviews():
-    filecsv = request.files['fisier']
-    filecsv = TextIOWrapper(filecsv, encoding='UTF-8')
-    data = csv.reader(filecsv, delimiter=",")
-    Cdata = list(data)
+    Cdata=csvRead()
     for i in range(1, len(Cdata)):
         user = Reviews(id=int(Cdata[i][0]), userProductid=int(Cdata[i][1]),productRating=int(Cdata[i][2]),reviewTitle=Cdata[i][3],reviewDetails=Cdata[i][4])
         db.session.add(user)
@@ -190,10 +192,7 @@ def reviews():
 
 @app.route("/userprod",methods=['POST'])
 def userprod():
-    filecsv = request.files['fisier']
-    filecsv = TextIOWrapper(filecsv, encoding='UTF-8')
-    data = csv.reader(filecsv, delimiter=",")
-    result = list(data)
+    result=csvRead()
     for i in range(1, len(result)):
         user = UserProductList(Id=int(result[i][0]), userId=int(result[i][1]),productId=int(result[i][2]),quantity=int(result[i][3]),orderId=int(result[i][4]))
         db.session.add(user)
@@ -202,10 +201,7 @@ def userprod():
 
 @app.route("/product",methods=['POST'])
 def product():
-    filecsv = request.files['fisier']
-    filecsv = TextIOWrapper(filecsv, encoding='UTF-8')
-    data = csv.reader(filecsv, delimiter=",")
-    result = list(data)
+    result=csvRead()
     for i in range(1, len(result)):
         user = Product(id=int(result[i][0]), SKU=result[i][1],productName=result[i][2],brand=result[i][3],productDescription=result[i][4],color=result[i][5],unitPrice=int(result[i][6]))
         db.session.add(user)
@@ -214,37 +210,73 @@ def product():
 
 @app.route("/customers",methods=['POST'])
 def customers():
-    filecsv = request.files['fisier']
-    filecsv = TextIOWrapper(filecsv, encoding='UTF-8')
-    data = csv.reader(filecsv, delimiter=",")
-    result = list(data)
+    result=csvRead()
     for i in range(1, len(result)):
         user = Customers(id=int(result[i][0]), first_name=result[i][1],last_name=result[i][2],gender=result[i][3],email=result[i][4],age=int(result[i][5]),address=result[i][6],state=result[i][7],zipcode=int(result[i][8]),phoneNumber=result[i][9],registrationDate=datetime.strptime(result[i][10],'%Y-%m-%dT%H:%M:%Sz'))
         db.session.add(user)
     db.session.commit()
     return "Transefer to db"
 
+@app.route("/getbygender",methods=['GET'])
+def gender():
+    gen=request.args.get('gender')
+    data=Customers.query.filter_by(gender=gen).all()
+    cols = ['id', 'first_name', 'last_name','gender','email','age','address','state','zipcode','phoneNumber','registrationDate']
+    result = [{col: getattr(d, col) for col in cols} for d in data]
+    return jsonify(result=result)
+
+@app.route("/getbystate",methods=['GET'])
+def state():
+    state=request.args.get('state')
+    data=Customers.query.filter_by(state=state).all()
+    cols = ['id', 'first_name', 'last_name','gender','email','age','address','state','zipcode','phoneNumber','registrationDate']
+    result = [{col: getattr(d, col) for col in cols} for d in data]
+    return jsonify(result=result)
+
+@app.route("/getbyagegreater",methods=['GET'])
+def agegr():
+    ageg=request.args.get('age')
+    data=Customers.query.filter(Customers.age >=ageg).all()
+    cols = ['id', 'first_name', 'last_name','gender','email','age','address','state','zipcode','phoneNumber','registrationDate']
+    result = [{col: getattr(d, col) for col in cols} for d in data]
+    return jsonify(result=result)
+
+@app.route("/getbyagesmaller",methods=['GET'])
+def agesm():
+    ages=request.args.get('age')
+    data=Customers.query.filter(Customers.age <=ages).all()
+    cols = ['id', 'first_name', 'last_name','gender','email','age','address','state','zipcode','phoneNumber','registrationDate']
+    result = [{col: getattr(d, col) for col in cols} for d in data]
+    return jsonify(result=result)
+
+@app.route("/getbyzip",methods=['GET'])
+def zip():
+    zip=request.args.get('zip')
+    data=Customers.query.filter_by(zipcode=zip).all()
+    cols = ['id', 'first_name', 'last_name','gender','email','age','address','state','zipcode','phoneNumber','registrationDate']
+    result = [{col: getattr(d, col) for col in cols} for d in data]
+    return jsonify(result=result)
+
 @app.route("/a",methods=['GET','DELETE'])
 def g():
     if request.method=='GET':
-        # cols = ['id', 'first_name', 'last_name','gender','email','age','address','state','zipcode','phoneNumber','registrationDate']
+        cols = ['id', 'first_name', 'last_name','gender','email','age','address','state','zipcode','phoneNumber','registrationDate']
         # cols=['id','userProductid','productRating','reviewTitle','reviewDetails']
         # cols=['id','purchaseDate','totalPrice']
-        cols=['Id','userId','productId','quantity','orderId']
-        data = UserProductList.query.all()
+        # cols=['Id','userId','productId','quantity','orderId']
+        data = Customers.query.all()
         result = [{col: getattr(d, col) for col in cols} for d in data]
         return jsonify(result=result)
     if request.method=='DELETE':
-        UserProductList.query.delete()
+        Customers.query.delete()
         db.session.commit()
         return 'success deletion'
 
-def post_customer(customername, emailid, id):
-    customer = User(customername=customername, emailid=emailid,id=id)
+def posting_user(name, email, id):
+    customer = User(username=name, email=email,id=id)
     db.session.add(customer)
-
     db.session.commit()
-    return (customername)
+    return (name)
 
 
 
